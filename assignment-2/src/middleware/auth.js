@@ -1,29 +1,39 @@
 const jwt = require('jsonwebtoken');
 
+// Token blacklist for invalidated tokens
+const blacklistedTokens = new Set();
+
+// Middleware to validate tokens
 const authenticateCookie = (req, res, next) => {
     const token = req.cookies.authToken || req.headers.authorization?.split(' ')[1];
-    console.log('Token received:', token);
+
+    console.log('Auth Token from Cookie:', req.cookies.authToken);
+    console.log('Auth Token from Header:', req.headers.authorization);
 
     if (!token) {
-        console.log('No token provided.');
         return res.status(401).json({
-            error: true,
+            success: false,
             message: 'Authentication token not provided. Access denied.',
         });
     }
 
+    // Check if the token is blacklisted
+    if (blacklistedTokens.has(token)) {
+        console.log('Token has been invalidated.');
+        return res.status(403).json({ success: false, message: 'Token has been invalidated.' });
+    }
+
     try {
+        // Verify and decode the token
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_secret_key');
-        console.log('Token is valid. Decoded user:', decoded);
-        req.user = decoded;
+        req.user = decoded; // Attach user info to the request
         next();
     } catch (error) {
-        console.error('Invalid or expired token:', error.message);
-        return res.status(403).json({
-            error: true,
-            message: 'Invalid or expired token. Access denied.',
-        });
+        console.error('Token verification failed:', error.message);
+        res.status(403).json({ success: false, message: 'Invalid or expired token. Access denied.' });
     }
 };
+
+console.log('Exporting authenticateCookie:', authenticateCookie);
 
 module.exports = authenticateCookie;

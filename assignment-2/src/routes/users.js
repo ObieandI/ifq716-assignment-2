@@ -1,13 +1,76 @@
 const express = require('express');
-const jwt = require('jsonwebtoken'); // For token generation
-const bcrypt = require('bcrypt'); // For password hashing
-const router = express.Router();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const knex = require('../node-knex/db');
+const authenticateCookie = require('../middleware/auth');
+const router = express.Router();
 
 // Secret key for signing tokens
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key'; // Replace with a strong secret key in production
+const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 
-// Register route
+
+
+// Handle user registration (POST)
+router.post('/register', async (req, res, next) => {
+  console.log('POST /register called');
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required.' });
+  }
+
+  try {
+      const existingUser = await knex('users').where({ email }).first();
+      if (existingUser) {
+          return res.status(409).json({ success: false, message: 'User already exists.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await knex('users').insert({ email, hash: hashedPassword });
+
+      res.status(201).json({ success: true, message: 'User created.' });
+  } catch (error) {
+      console.error('Error during registration:', error);
+      next(error);
+  }
+});
+
+// Login route
+router.post('/login', async (req, res, next) => {
+  console.log('POST /login called');
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required.' });
+  }
+
+  try {
+      const user = await knex('users').where({ email }).first();
+      if (!user) {
+          return res.status(404).json({ success: false, message: 'User not found.' });
+      }
+
+      const isPasswordValid = await bcrypt.compare(password, user.hash);
+      if (!isPasswordValid) {
+          return res.status(401).json({ success: false, message: 'Invalid password.' });
+      }
+
+      const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+      res.cookie('authToken', token, { httpOnly: true, secure: true });
+      res.status(200).json({ success: true, message: 'Login successful', token });
+  } catch (error) {
+      console.error('Error logging in:', error);
+      next(error);
+  }
+});
+
+
+// Secure route example
+router.get('/secure-data', authenticateCookie, (req, res) => {
+  res.status(200).json({ success: true, message: 'Secure data accessed.', user: req.user });
+});
+
+
 // Serve the registration form on the same route as the POST endpoint
 router.get('/register', (req, res) => {
   res.send(`
@@ -32,38 +95,6 @@ router.get('/register', (req, res) => {
   `);
 });
 
-// Handle user registration (POST)
-router.post('/register', async (req, res, next) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required' });
-  }
-
-  try {
-      // Check if user already exists
-      const existingUser = await knex('users').where({ email }).first();
-      if (existingUser) {
-          return res.status(409).json({ success: false, message: 'User already exists' });
-      }
-
-      // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Insert the user into the database
-      await knex('users').insert({
-          email,
-          hash: hashedPassword,
-      });
-
-      res.status(201).json({ success: true, message: 'User created' });
-  } catch (error) {
-      console.error('Error registering user:', error);
-      next(error); // Pass the error to the error-handling middleware
-  }
-});
-
-
 router.get('/login', (req, res) => {
   res.send(`
       <!DOCTYPE html>
@@ -87,46 +118,5 @@ router.get('/login', (req, res) => {
   `);
 });
 
-// Login route
-router.post('/login', async (req, res, next) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email and password are required' });
-  }
-
-  try {
-    // Fetch user from the database
-    const user = await knex('users').where({ email }).first();
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Compare passwords
-    const isMatch = await bcrypt.compare(password, user.hash);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Generate a JWT token
-    const token = jwt.sign(
-      { email: user.email }, 
-      process.env.JWT_SECRET || 'your_secret_key', 
-      { expiresIn: '1h' }
-    );
-
-    // Send token as part of the response
-    res.cookie('authToken', token, { httpOnly: true, secure: true }); // Optional: Save token as a cookie
-    res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      token, // Include token in the response
-    });
-  } catch (error) {
-    console.error('Error during login:', error);
-    next(error); // Pass to the error-handling middleware
-  }
-});
 
 module.exports = router;

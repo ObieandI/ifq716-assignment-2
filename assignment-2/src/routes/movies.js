@@ -8,10 +8,34 @@ router.get("/", function (req, res, next) {
 });
 
 router.get('/search/:Title', (req, res, next) => {
-  req.db('basics')
+  const { Title } = req.params; // Mandatory field
+  const { year } = req.query; // Optional query parameter for year
+
+  if (!Title) {
+    return res.status(400).json({ error: true, message: 'Title is required' });
+  }
+
+  // Validate the year format if provided
+  if (year && !/^\d{4}$/.test(year)) {
+    return res.status(400).json({ error: true, message: 'Invalid year format. Format must be yyyy.' });
+  }
+
+  // Build the query
+  let query = req.db('basics')
     .select('primaryTitle as Title', 'startYear as Year', 'tconst as imdbID', 'titleType as Type')
-    .where('primaryTitle', 'like', `%${req.params.Title}%`)
+    .where('primaryTitle', 'like', `%${Title}%`);
+
+  if (year) {
+    query = query.andWhere('startYear', year); // Filter by year if provided
+  }
+
+  query
     .then((rows) => {
+      if (rows.length === 0) {
+        // Return an error if no movies match the criteria
+        return res.status(404).json({ error: true, message: 'No movies found matching the criteria' });
+      }
+
       const totalResults = rows.length;
       const page = parseInt(req.query.page) || 1;
       const perPage = parseInt(req.query.perPage) || 10;
@@ -39,6 +63,7 @@ router.get('/search/:Title', (req, res, next) => {
       next(err); // Pass the error to the error handler
     });
 });
+
 
 router.get('/data/:imdbID', async (req, res, next) => {
   const { imdbID } = req.params;
