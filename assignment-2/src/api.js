@@ -1,15 +1,15 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const knex = require('./node-knex/db'); // Include database connection
-const authenticateCookie = require('./middleware/auth'); // Middleware for authentication
+const knex = require('./node-knex/db');
+const authenticateCookie = require('./middleware/auth');
 const router = express.Router();
 
 // Environment variables and defaults
-const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key'; // Replace with a strong secret key
+const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 const TOKEN_EXPIRY = '1h'; // Token expiry duration
 
-// In-memory token store (use Redis or DB for production)
+// In-memory token store
 const validTokens = new Set();
 
 const addValidToken = (token) => validTokens.add(token);
@@ -18,7 +18,7 @@ const isTokenValid = (token) => validTokens.has(token);
 
 // Middleware for Cross-Origin Resource Sharing (CORS)
 router.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*'); // Adjust to specific origins in production
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     next();
 });
@@ -28,6 +28,7 @@ router.get('/status', (req, res) => {
     res.json({ success: true, message: 'API is up and running!' });
 });
 
+//Login
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
@@ -56,9 +57,10 @@ router.post('/login', async (req, res) => {
     }
 });
 
+//Logout
 router.post('/logout', authenticateCookie, logout);
 
-
+//Validate Token
 router.get('/validate-token', (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
 

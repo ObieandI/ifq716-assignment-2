@@ -35,7 +35,6 @@ router.get('/:imdbID', authenticateCookie, async (req, res, next) => {
         const localPosterPath = path.join(POSTER_DIR, `${imdbID}_poster.png`);
 
         if (fs.existsSync(localPosterPath)) {
-            console.log(`Serving poster from local file: ${localPosterPath}`);
             return res.sendFile(localPosterPath);
         }
 

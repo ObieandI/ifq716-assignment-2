@@ -1,14 +1,12 @@
 const jwt = require('jsonwebtoken');
 
+
 // Token blacklist for invalidated tokens
 const blacklistedTokens = new Set();
 
 // Middleware to validate tokens
 const authenticateCookie = (req, res, next) => {
     const token = req.cookies.authToken || req.headers.authorization?.split(' ')[1];
-
-    console.log('Auth Token from Cookie:', req.cookies.authToken);
-    console.log('Auth Token from Header:', req.headers.authorization);
 
     if (!token) {
         return res.status(401).json({
@@ -33,7 +31,5 @@ const authenticateCookie = (req, res, next) => {
         res.status(403).json({ success: false, message: 'Invalid or expired token. Access denied.' });
     }
 };
-
-console.log('Exporting authenticateCookie:', authenticateCookie);
 
 module.exports = authenticateCookie;

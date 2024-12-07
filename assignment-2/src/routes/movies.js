@@ -2,14 +2,13 @@ const express = require('express');
 const router = express.Router();
 const knex = require('../node-knex/db');
 
-
 router.get("/", function (req, res, next) {
   res.render("movies", { title: "Express" });
 });
 
 router.get('/search/:Title', (req, res, next) => {
-  const { Title } = req.params; // Mandatory field
-  const { year } = req.query; // Optional query parameter for year
+  const { Title } = req.params;
+  const { year } = req.query;
 
   if (!Title) {
     return res.status(400).json({ error: true, message: 'Title is required' });
@@ -96,7 +95,7 @@ router.get('/data/:imdbID', async (req, res, next) => {
     // Fetch writers (handling multiple nconst values)
     const crew = await knex('crew').select('writers').where('tconst', imdbID).first();
     if (crew && crew.writers) {
-      const writerIds = crew.writers.split(','); // Split multiple nconst values
+      const writerIds = crew.writers.split(','); 
       const writers = await knex('names')
         .select('primaryName')
         .whereIn('nconst', writerIds);

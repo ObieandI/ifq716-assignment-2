@@ -51,29 +51,6 @@ app.get('/', (req, res) => {
   res.send('Welcome to the HTTPS server!');
 });
 
-// Secure endpoint example
-app.get('/secure', authenticateCookie, (req, res) => {
-  res.json({
-    success: true,
-    message: 'This is a secure endpoint!',
-    user: req.user, // Populated by `authenticateCookie`
-  });
-});
-
-// Database test route
-app.get('/knex', (req, res, next) => {
-  req.db
-    .raw('SELECT VERSION()')
-    .then((version) => {
-      console.log(version[0][0]);
-      res.send('Version Logged successfully');
-    })
-    .catch((err) => {
-      console.error('Database error:', err);
-      next(err);
-    });
-});
-
 // Catch 404 and forward to error handler
 app.use((req, res, next) => {
   next(createError(404));

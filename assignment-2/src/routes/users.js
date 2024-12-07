@@ -2,13 +2,10 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const knex = require('../node-knex/db');
-const authenticateCookie = require('../middleware/auth');
 const router = express.Router();
 
 // Secret key for signing tokens
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
-
-
 
 // Handle user registration (POST)
 router.post('/register', async (req, res, next) => {
@@ -65,12 +62,6 @@ router.post('/login', async (req, res, next) => {
 });
 
 
-// Secure route example
-router.get('/secure-data', authenticateCookie, (req, res) => {
-  res.status(200).json({ success: true, message: 'Secure data accessed.', user: req.user });
-});
-
-
 // Serve the registration form on the same route as the POST endpoint
 router.get('/register', (req, res) => {
   res.send(`
@@ -95,6 +86,7 @@ router.get('/register', (req, res) => {
   `);
 });
 
+// Serve the login form on the same route as the POST endpoint
 router.get('/login', (req, res) => {
   res.send(`
       <!DOCTYPE html>
